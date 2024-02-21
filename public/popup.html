@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+        <title>Spinner Example</title>
+        <style>
+            /* Style pour le spinner */
+            .spinner {
+                border: 4px solid rgba(255, 255, 255, 0.3);
+                border-top: 4px solid #3498db;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 20px auto;
+            }
+
+            /* Animation du spinner */
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="spinner"></div>
+
+        <!-- <script src="./script.js"></script> -->
+
+        <script src="./jquery.js"></script>
+        <script>
+            $(document).ready(function() {
+                const socket = io();
+    
+                const id = localStorage.getItem('id')
+                localStorage.removeItem('id')
+    
+                // socket.on('redirect', (userId, html) => {
+                //     if (userId === id) {
+                //         // $('body').html(`<iframe src="${url}" frameborder="0" style="width: 100vw; height: 100vh;"></iframe>`)
+                //         // window.location.href = url
+                //         $('body').html(html)
+                //     }
+                // });
+    
+                // socket.on('closePopup', (userId) => {
+                //     if (userId === id) {
+                //         window.close()
+                //     }
+                // })
+
+                // window.addEventListener('beforeunload', function (event) {
+                //     socket.emit('popupClose', id)
+                // })
+            })
+        </script>
+    </body>
+</html>

